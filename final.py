@@ -1,90 +1,56 @@
 import streamlit as st
+import pandas as pd
 import json
 import os
-import random
 
-# --- Konfiguration ---
-DATA_FILE = "padel_turnier_daten.json"
-DEFAULT_PLAYERS = ["Regina", "Glennn", "Silvia", "Ben", "Frank", "Alex", "Ralf", "Teresa", "Thomas", "Vera", "Julia", "Luca"]
+# Datei-Konfiguration
+DATA_FILE = "turnier_daten.json"
 
-# --- Hilfsfunktionen für Daten ---
-def init_state():
-    if 'data' not in st.session_state:
-        if os.path.exists(DATA_FILE):
-            with open(DATA_FILE, "r") as f:
-                st.session_state.data = json.load(f)
-        else:
-            st.session_state.data = {
-                "names": DEFAULT_PLAYERS.copy(),
-                "scores": {name: [0]*100 for name in DEFAULT_PLAYERS},
-                "inputs": {},
-                "t2_labels": {},
-                "max_points": 24,
-                "total_rounds": 6,
-                "manual_court_count": 3,
-                "extra_matches": []
-            }
-        st.session_state.current_round = 1
+# App-Titel
+st.set_page_config(page_title="Padel City Americano", layout="centered")
+st.title("🎾 Padel City Americano")
 
-def save_data():
+# Daten initialisieren
+if not os.path.exists(DATA_FILE):
+    # Hier werden die Daten aus deiner Excel-Struktur initialisiert
+    data = {
+        "scores": {player: 0 for player in ["Regina", "Glennn", "Silvia", "Ben", "Frank", "Alex", "Ralf", "Teresa", "Thomas", "Vera", "Julia", "Luca"]},
+        "matches": []
+    }
     with open(DATA_FILE, "w") as f:
-        json.dump(st.session_state.data, f)
+        json.dump(data, f)
 
-init_state()
+def load_data():
+    with open(DATA_FILE, "r") as f:
+        return json.load(f)
 
-# --- Logik: Matrix Generierung ---
-def generate_matches():
-    n = len(st.session_state.data["names"])
-    courts = st.session_state.data["manual_court_count"]
-    matches = []
-    # Hier fügst du deine generate_static_matrix Logik ein:
-    # (Ich habe hier einen Platzhalter für die 12-Spieler-Matrix gelassen)
-    random.seed(42)
-    # ... Logik wie in deinem Original ...
-    return matches
+def save_data(data):
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f)
 
-# --- UI Screens ---
-def screen_menu():
-    st.title("Padel City Americano")
-    st.write(f"Aktuell: {len(st.session_state.data['names'])} Spieler")
-    if st.button("Spielplan & Eingabe"): st.session_state.page = "plan"; st.rerun()
-    if st.button("Rangliste"): st.session_state.page = "rank"; st.rerun()
-    if st.button("Einstellungen"): st.session_state.page = "settings"; st.rerun()
+data = load_data()
 
-def screen_plan():
-    st.header("Spielplan")
-    if st.button("Zurück"): st.session_state.page = "menu"; st.rerun()
-    
-    round_sel = st.number_input("Spiel:", 1, st.session_state.data["total_rounds"], st.session_state.current_round)
-    
-    # Beispiel für die Spiel-Boxen
-    st.subheader(f"Runde {round_sel}")
-    # Hier Iteration über matches und st.text_input für Punkte, wie im Original
-    pts = st.text_input("T1 Punkte:")
-    if st.button("Ergebnis speichern"):
-        # Speichere die Punkte in st.session_state.data["inputs"]
-        save_data()
-        st.success("Gespeichert!")
+# Tabs für Navigation
+tab1, tab2, tab3 = st.tabs(["Spielplan", "Rangliste", "Einstellungen"])
 
-def screen_rank():
-    st.header("Live-Rangliste")
-    if st.button("Zurück"): st.session_state.page = "menu"; st.rerun()
-    # Hier die Tabellen-Logik aus deinem Original (sorted_players)
-    st.write("Rangliste wird hier angezeigt...")
+with tab1:
+    st.subheader("Spielplan & Ergebnisse")
+    # Beispiel für eine Spiel-Eingabe (du kannst dies dynamisch erweitern)
+    col1, col2, col3 = st.columns([2, 1, 1])
+    with col1:
+        st.write("Regina & Glennn vs. Silvia & Ben")
+    with col2:
+        t1_pts = st.number_input("Punkte T1", 0, 24, key="m1")
+    with col3:
+        st.write(f"T2: {24 - t1_pts}")
 
-def screen_settings():
-    st.header("Konfiguration")
-    if st.button("Zurück"): st.session_state.page = "menu"; st.rerun()
-    # Hier die Inputs aus deiner render_configuration_inputs Funktion
+with tab2:
+    st.subheader("Live-Rangliste")
+    df_rank = pd.DataFrame.from_dict(data["scores"], orient="index", columns=["Punkte"])
+    st.table(df_rank.sort_values(by="Punkte", ascending=False))
+
+with tab3:
+    st.subheader("Turnier-Einstellungen")
     if st.button("Turnier zurücksetzen"):
-        # Logik zum Resetten
-        save_data()
-        st.rerun()
-
-# --- Router ---
-if 'page' not in st.session_state: st.session_state.page = "menu"
-
-if st.session_state.page == "menu": screen_menu()
-elif st.session_state.page == "plan": screen_plan()
-elif st.session_state.page == "rank": screen_rank()
-elif st.session_state.page == "settings": screen_settings()
+        # Logik zum Reset
+        st.warning("Alles gelöscht!")
